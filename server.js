@@ -28,13 +28,23 @@ app.use(flash());
 // Konfigurasi Multer untuk menangani unggahan file di memori
 const upload = multer({ storage: multer.memoryStorage() });
 
-// Middleware untuk variabel global (pesan flash)
+// Middleware untuk variabel global yang akan digunakan di semua template EJS
 app.use((req, res, next) => {
+  // Pesan Flash untuk notifikasi
   res.locals.success_msg = req.flash("success_msg");
   res.locals.error_msg = req.flash("error_msg");
   res.locals.error = req.flash("error"); // Untuk kompatibilitas dengan halaman login
-  res.locals.old_input = req.flash("old_input")[0] || {}; // Untuk mengisi kembali form
+
+  // Untuk mengisi kembali form setelah validasi gagal
+  res.locals.old_input = req.flash("old_input")[0] || {};
+
+  // Variabel default untuk layout (mencegah error 'not defined' di template)
+  res.locals.title = "TrueConf User Manager"; // Judul default
   res.locals.currentPath = req.path;
+  res.locals.users = [];
+  res.locals.searchQuery = req.query.search || "";
+  res.locals.currentPage = parseInt(req.query.page) || 1;
+  res.locals.totalPages = 0;
   next();
 });
 
@@ -49,45 +59,36 @@ const requireAuth = (req, res, next) => {
 
 // Routes
 app.get("/", requireAuth, async (req, res) => {
-  const searchQuery = req.query.search || "";
-  const page = parseInt(req.query.page) || 1;
+  // Variabel searchQuery dan page sudah ada di res.locals dari middleware
+  const { searchQuery, currentPage: page } = res.locals;
   const limit = 10; // Jumlah pengguna per halaman
 
   let users = [];
-  let totalPages = 0;
-  let error = null;
-  let search_success_msg = null;
 
   // Hanya jalankan pencarian jika ada query
   if (searchQuery) {
     try {
       const foundUsers = await api.getUsers(searchQuery);
       console.log("Hasil query API:", foundUsers); // Menampilkan hasil query di konsol
-      totalPages = Math.ceil(foundUsers.length / limit);
+      res.locals.totalPages = Math.ceil(foundUsers.length / limit);
 
       const startIndex = (page - 1) * limit;
       const endIndex = page * limit;
 
       users = foundUsers.slice(startIndex, endIndex);
       if (users.length > 0) {
-        search_success_msg = `Pencarian untuk "${searchQuery}" berhasil ditemukan.`;
+        res.locals.search_success_msg = `Pencarian untuk "${searchQuery}" berhasil ditemukan.`;
       }
     } catch (e) {
       console.error("Error fetching users:", e.message);
-      error = "Gagal mengambil data pengguna. Silakan coba lagi.";
+      // Menimpa res.locals.error yang mungkin sudah ada dari flash message
+      res.locals.error = "Gagal mengambil data pengguna. Silakan coba lagi.";
     }
   }
 
-  // Tetapkan semua variabel ke res.locals agar tersedia di templat.
-  // Pola ini konsisten dengan cara pesan flash diteruskan.
+  // Perbarui res.locals dengan data yang didapat dari pencarian
   res.locals.users = users;
-  res.locals.searchQuery = searchQuery;
-  res.locals.error = error; // Catatan: Ini menimpa pesan flash 'error' apa pun.
-  res.locals.currentPage = page;
-  res.locals.search_success_msg = search_success_msg;
-  res.locals.totalPages = totalPages;
 
-  // Tambahkan judul ke locals
   res.locals.title = "Dashboard";
 
   res.render("index");
@@ -97,8 +98,9 @@ app.get("/login", (req, res) => {
   if (req.session.isAuthenticated) {
     return res.redirect("/");
   }
-  // Kirim judul saat merender halaman login
-  res.render("login", { title: "Login" });
+  // Cukup atur judul spesifik untuk halaman ini, variabel lain sudah ada dari middleware
+  res.locals.title = "Login";
+  res.render("login");
 });
 
 app.post("/login", (req, res) => {
@@ -123,8 +125,8 @@ app.get("/logout", (req, res) => {
 });
 
 app.get("/tambah", requireAuth, (req, res) => {
-  // Variabel `error` dan `old_input` sudah tersedia di `res.locals` dari middleware
-  res.render("tambah-user", { title: "Tambah Pengguna" });
+  res.locals.title = "Tambah Pengguna";
+  res.render("tambah-user");
 });
 
 app.post("/tambah", requireAuth, async (req, res) => {
@@ -374,6 +376,5 @@ app.get("/import/process-stream", requireAuth, async (req, res) => {
   res.end();
 });
 
-app.listen(port, () => {
-  console.log(`Server berjalan di http://localhost:${port}`);
-});
+// Export the app for Vercel's serverless environment
+module.exports = app;
