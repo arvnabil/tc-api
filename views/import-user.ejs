@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Import User Massal</title>
+  <style>
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        background-image: url("/images/bg.svg");
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        color: #fff !important;
+        margin: 0;
+        padding: 0;
+      }
+      .card {
+        /* Warna latar belakang #1C6068 dengan 90% opacity */
+        background-color: rgba(28, 96, 104, 0.9);
+        border: 1px solid hsla(0, 0%, 100%, 0.12);
+        color: white; /* Mengubah warna teks menjadi putih */
+      }
+      .btn-primary {
+        background-color: #f57f16;
+        border-color: #f57f16;
+        color: white;
+      }
+      .btn-primary:hover {
+        /* Warna sedikit lebih gelap saat kursor di atas tombol */
+        background-color: #d87314;
+        border-color: #d87314;
+      }
+
+.tab-content {
+  padding: 10px;
+  background-color: rgba(28, 96, 104, 0.9);
+  color: white;
+  border: 1px solid #495057;
+  border-top: none;
+  border-radius: 0 0 .375rem .375rem;
+}
+.nav-tabs {
+  border-bottom: none; /* Menghapus border bawah default */
+}
+
+.nav-tabs .nav-link {
+  background-color: rgba(17, 106, 118, 0.5); /* #28838F with 70% opacity */
+  border: 1px solid b4b3b6;
+  color: #fff; /* Warna teks abu-abu untuk tab tidak aktif */
+  border-radius: .375rem .375rem 0 0;
+}
+
+/* Efek hover untuk tab tidak aktif */
+.nav-tabs .nav-link:not(.active):hover {
+  background-color: rgba(40, 131, 143, 1); /* Sedikit lebih solid saat hover */
+  color: #b4b3b6;
+}
+
+/* Gaya untuk tab yang aktif, meniru btn-primary */
+.nav-tabs .nav-link.active,
+.nav-tabs .nav-item.show .nav-link {
+  color: white !important;
+  background-color: #f57f16 !important;
+  border-color: #f57f16 #f57f16 transparent !important;
+}
+
+  </style>
+ <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css"
+    />
+</head>
+<body>
+  <%- include('partials/navbar') %>
+
+  <div class="container mt-4">
+    <h1>Import User Massal</h1>
+    <p>Gunakan fitur ini untuk menambahkan banyak pengguna sekaligus menggunakan file Excel.</p>
+
+    <%- include('partials/messages') %>
+
+    <!-- Nav tabs -->
+    <ul class="nav nav-tabs" id="importTab" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link <%- activeTab === 'download' ? 'active' : '' %>" id="download-tab" data-bs-toggle="tab" data-bs-target="#download" type="button" role="tab" aria-controls="download">1. Unduh Template</button>
+      </li>
+      <li class="nav-item mx-1" role="presentation">
+        <button class="nav-link <%- activeTab === 'upload' ? 'active' : '' %>" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload" type="button" role="tab" aria-controls="upload">2. Unggah File</button>
+      </li>
+      <li class="nav-item mx-1" role="presentation">
+        <button class="nav-link <%- activeTab === 'review' ? 'active' : '' %>" id="review-tab" data-bs-toggle="tab" data-bs-target="#review" type="button" role="tab" aria-controls="review" <%- !usersToReview.length ? 'disabled' : '' %>>3. Tinjau Data</button>
+      </li>
+      <li class="nav-item mx-1" role="presentation">
+        <button class="nav-link" id="processing-tab" data-bs-toggle="tab" data-bs-target="#processing" type="button" role="tab" aria-controls="processing" disabled>4. Proses</button>
+      </li>
+    </ul>
+
+    <!-- Tab panes -->
+    <div class="tab-content p-3" id="importTabContent">
+      <div class="tab-pane fade <%- activeTab === 'download' ? 'show active' : '' %>" id="download" role="tabpanel" aria-labelledby="download-tab">
+        <h3>Langkah 1: Unduh Template Excel</h3>
+        <p>Unduh template file Excel untuk memastikan format data pengguna sudah benar.</p>
+        <a href="/download-template" class="btn btn-success">
+          <i class="bi bi-file-earmark-excel-fill"></i> Unduh Template Excel
+        </a>
+      </div>
+      <div class="tab-pane fade <%- activeTab === 'upload' ? 'show active' : '' %>" id="upload" role="tabpanel" aria-labelledby="upload-tab">
+        <h3>Langkah 2: Unggah File Excel</h3>
+        <p>Unggah file Excel yang sudah diisi dengan data pengguna.</p>
+        <form action="/import/review" method="POST" enctype="multipart/form-data">
+          <div class="mb-3">
+            <label for="userFile" class="form-label">Pilih file Excel (.xlsx)</label>
+            <input class="form-control" type="file" id="userFile" name="userFile" accept=".xlsx" required>
+          </div>
+          <button type="submit" class="btn btn-primary">Unggah dan Tinjau</button>
+        </form>
+      </div>
+      <div class="tab-pane fade <%- activeTab === 'review' ? 'show active' : '' %>" id="review" role="tabpanel" aria-labelledby="review-tab">
+        <h3>Langkah 3: Tinjau Data Pengguna</h3>
+        <% if (usersToReview.length > 0) { %>
+          <p>Berikut adalah data yang ditemukan dari file Excel. Pastikan semua data sudah benar sebelum melanjutkan.</p>
+          <div class="table-responsive">
+            <table class="table table-striped table-bordered table-dark">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Password</th>
+                  <th>Display Name</th>
+                  <th>First Name</th>
+                  <th>Last Name</th>
+                  <th>Company</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% usersToReview.forEach(user => { %>
+                  <tr>
+                    <td><%- user.id %></td>
+                    <td>********</td>
+                    <td><%- user.display_name %></td>
+                    <td><%- user.first_name %></td>
+                    <td><%- user.last_name %></td>
+                    <td><%- user.company %></td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+          <div class="my-3">
+            <button class="btn btn-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#json-payload-container" aria-expanded="false" aria-controls="json-payload-container">
+              <i class="bi bi-filetype-json"></i> Lihat Payload JSON
+            </button>
+          </div>
+          <div class="collapse" id="json-payload-container">
+            <div class="card card-body bg-light mb-3">
+              <p>Ini adalah data JSON yang akan dikirim ke API. Anda bisa memeriksanya untuk debugging.</p>
+              <pre id="json-payload-pre" class="bg-dark text-white p-3 rounded" style="max-height: 300px;"></pre>
+            </div>
+          </div>
+
+          <button id="startProcessingBtn" class="btn btn-danger">Mulai Proses Penambahan <%= usersToReview.length %> User</button>
+        <% } else { %>
+          <p class="text-muted">Tidak ada data untuk ditinjau. Silakan unggah file pada tab sebelumnya.</p>
+        <% } %>
+      </div>
+      <div class="tab-pane fade" id="processing" role="tabpanel" aria-labelledby="processing-tab">
+        <h3>Langkah 4: Proses Penambahan Pengguna</h3>
+        <p>Proses sedang berjalan. Jangan tutup halaman ini sampai proses selesai.</p>
+        <pre id="log-output" class="bg-dark text-white p-3 rounded" style="max-height: 700px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;"></pre>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const reviewTabBtn = document.getElementById('review-tab');
+      const processingTabBtn = document.getElementById('processing-tab');
+      const startProcessingBtn = document.getElementById('startProcessingBtn');
+      const logOutput = document.getElementById('log-output');
+      const jsonPayloadPre = document.getElementById('json-payload-pre');
+
+      function showTab(tabId) {
+        const tab = document.getElementById(tabId);
+        if (tab) new bootstrap.Tab(tab).show();
+      }
+
+      // Generate and display JSON payload if on review tab
+      if (jsonPayloadPre && <%- usersToReview.length > 0 %>) {
+        const usersToReviewData = <%- JSON.stringify(usersToReview, null, 2) %>;
+        const payload = {
+          users: usersToReviewData.map(user => ({
+            id: user.id,
+            login_name: user.id,
+            password: user.password,
+            display_name: user.display_name || "",
+            first_name: user.first_name || "",
+            last_name: user.last_name || "",
+            company: user.company || "",
+            email: `${user.id}@mobilevicon.polri.go.id`,
+            uid: `${user.id}@mobilevicon.polri.go.id`,
+            is_active: 1,
+            status: 0,
+            avatar: null,
+            groups: null,
+            mobile_phone: "",
+            work_phone: "",
+            home_phone: "",
+          }))
+        };
+        jsonPayloadPre.textContent = JSON.stringify(payload, null, 2);
+      }
+
+      if (startProcessingBtn) {
+        startProcessingBtn.addEventListener('click', function() {
+          this.disabled = true;
+          this.textContent = 'Memproses...';
+          processingTabBtn.disabled = false;
+          showTab('processing-tab');
+          logOutput.textContent = 'Menghubungkan ke server...\n';
+          const eventSource = new EventSource('/import/process-stream');
+          eventSource.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            if (data.log) {
+              logOutput.textContent += data.log + '\n';
+              logOutput.scrollTop = logOutput.scrollHeight;
+            }
+            if (data.done) {
+              eventSource.close();
+              startProcessingBtn.textContent = 'Proses Selesai';
+            }
+          };
+          eventSource.onerror = function() {
+            logOutput.textContent += '\nKoneksi terputus. Proses mungkin gagal.';
+            eventSource.close();
+            startProcessingBtn.textContent = 'Proses Gagal';
+            startProcessingBtn.classList.remove('btn-danger');
+            startProcessingBtn.classList.add('btn-secondary');
+          };
+        });
+      }
+    });
+  </script>
+</body>
+</html>
