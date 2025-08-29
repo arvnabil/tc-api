@@ -132,8 +132,8 @@
             </tr>
           </thead>
           <tbody>
-            <% if (users && users.length > 0) { %> <% const user =
-            users[0].user; %>
+            <% if (users && users.length > 0) { %> <% const user = users[0].user
+            || users[0]; %>
             <tr>
               <td><%= user.id %></td>
               <td><%= user.first_name %></td>
