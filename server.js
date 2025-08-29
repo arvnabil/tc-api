@@ -374,6 +374,5 @@ app.get("/import/process-stream", requireAuth, async (req, res) => {
   res.end();
 });
 
-app.listen(port, () => {
-  console.log(`Server berjalan di http://localhost:${port}`);
-});
+// Export the app for Vercel's serverless environment
+module.exports = app;
