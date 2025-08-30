@@ -377,11 +377,10 @@ app.post("/import/process-stream", requireAuth, async (req, res) => {
     log: `Memulai proses penambahan ${usersToProcess.length} user...`,
   });
 
-  for (const user of usersToProcess) {
-    sendEvent({ log: `-------------------------------------------` });
-    sendEvent({ log: `Mencoba menambahkan user: ${user.id}` });
-
-    const userData = {
+  // Ubah dari perulangan menjadi satu operasi massal
+  try {
+    // 1. Siapkan payload untuk semua pengguna
+    const usersPayload = usersToProcess.map((user) => ({
       id: user.id,
       login_name: user.id,
       password: user.password,
@@ -398,24 +397,23 @@ app.post("/import/process-stream", requireAuth, async (req, res) => {
       mobile_phone: "",
       work_phone: "",
       home_phone: "",
-    };
+    }));
 
-    try {
-      const result = await api.addUser(userData);
-      if (result && result.user && result.user.id) {
-        sendEvent({
-          log: `✅ BERHASIL: User "${result.user.id}" berhasil diproses.`,
-        });
-      } else {
-        sendEvent({
-          log: `✅ BERHASIL: User "${user.id}" diproses, namun respons tidak terduga.`,
-        });
-      }
-    } catch (error) {
-      sendEvent({
-        log: `❌ GAGAL: User "${user.id}" gagal dibuat. Alasan: ${error.message}`,
-      });
-    }
+    sendEvent({ log: `-------------------------------------------` });
+    sendEvent({
+      log: `Mengirim ${usersPayload.length} pengguna ke API dalam satu permintaan...`,
+    });
+
+    // 2. Panggil API untuk operasi massal
+    const result = await api.addUsersBulk(usersPayload);
+
+    sendEvent({ log: `✅ BERHASIL: Operasi massal selesai.` });
+    // Tampilkan respons dari server untuk referensi
+    sendEvent({ log: `Respons Server: ${JSON.stringify(result, null, 2)}` });
+  } catch (error) {
+    sendEvent({
+      log: `❌ GAGAL: Operasi massal gagal. Alasan: ${error.message}`,
+    });
   }
 
   sendEvent({ log: `-------------------------------------------` });
