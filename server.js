@@ -205,11 +205,11 @@ app.get("/api/users/search", requireAuth, async (req, res) => {
 });
 
 app.get("/import", requireAuth, (req, res) => {
-  const usersToReview = req.session.importData || [];
-  res.locals.usersToReview = usersToReview;
+  // Data review sekarang akan dirender langsung oleh POST /import/review
+  // Rute GET ini hanya untuk menampilkan halaman awal.
+  res.locals.usersToReview = [];
   res.locals.activeTab = req.query.tab || "download";
   res.locals.title = "Import Pengguna";
-
   res.render("import-user");
 });
 
@@ -307,8 +307,11 @@ app.post(
         });
       }
 
-      req.session.importData = usersToReview;
-      res.redirect("/import?tab=review");
+      // JANGAN simpan di sesi dan redirect. Langsung render halaman review.
+      res.locals.usersToReview = usersToReview;
+      res.locals.activeTab = "review";
+      res.locals.title = "Tinjau Data Import";
+      res.render("import-user");
     } catch (error) {
       console.error("Error processing excel file:", error);
       const errorMessage = error.message.includes("Data tidak valid")
@@ -320,13 +323,14 @@ app.post(
   }
 );
 
-app.get("/import/process-stream", requireAuth, async (req, res) => {
+app.post("/import/process-stream", requireAuth, async (req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
   res.flushHeaders();
 
-  const usersToProcess = req.session.importData;
+  // Ambil data dari body request, bukan dari sesi
+  const usersToProcess = req.body.users;
 
   const sendEvent = (data) => {
     res.write(`data: ${JSON.stringify(data)}\n\n`);
@@ -386,7 +390,6 @@ app.get("/import/process-stream", requireAuth, async (req, res) => {
   sendEvent({ log: "🎉 Proses Selesai!" });
   sendEvent({ done: true });
 
-  delete req.session.importData;
   res.end();
 });
 

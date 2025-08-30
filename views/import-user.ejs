@@ -184,64 +184,89 @@
       const startProcessingBtn = document.getElementById('startProcessingBtn');
       const logOutput = document.getElementById('log-output');
       const jsonPayloadPre = document.getElementById('json-payload-pre');
+      let payload = {}; // Definisikan payload di scope yang lebih luas
 
       function showTab(tabId) {
         const tab = document.getElementById(tabId);
         if (tab) new bootstrap.Tab(tab).show();
       }
 
-      // Generate and display JSON payload if on review tab
+      // Jika ada data untuk direview, siapkan payload dan tampilkan
       if (jsonPayloadPre && <%- usersToReview.length > 0 %>) {
         const usersToReviewData = <%- JSON.stringify(usersToReview, null, 2) %>;
-        const payload = {
-          users: usersToReviewData.map(user => ({
-            id: user.id,
-            login_name: user.id,
-            password: user.password,
-            display_name: user.display_name || "",
-            first_name: user.first_name || "",
-            last_name: user.last_name || "",
-            company: user.company || "",
-            email: `${user.id}@mobilevicon.polri.go.id`,
-            uid: `${user.id}@mobilevicon.polri.go.id`,
-            is_active: 1,
-            status: 0,
-            avatar: null,
-            groups: null,
-            mobile_phone: "",
-            work_phone: "",
-            home_phone: "",
-          }))
-        };
+        // Simpan payload untuk digunakan oleh event listener tombol proses
+        payload = { users: usersToReviewData };
         jsonPayloadPre.textContent = JSON.stringify(payload, null, 2);
       }
 
       if (startProcessingBtn) {
         startProcessingBtn.addEventListener('click', function() {
           this.disabled = true;
-          this.textContent = 'Memproses...';
+          this.innerHTML = '<i class="bi bi-hourglass-split"></i> Memproses...';
           processingTabBtn.disabled = false;
           showTab('processing-tab');
           logOutput.textContent = 'Menghubungkan ke server...\n';
-          const eventSource = new EventSource('/import/process-stream');
-          eventSource.onmessage = function(event) {
-            const data = JSON.parse(event.data);
-            if (data.log) {
-              logOutput.textContent += data.log + '\n';
-              logOutput.scrollTop = logOutput.scrollHeight;
+
+          // Gunakan fetch untuk mengirim POST request dengan data di body
+          fetch('/import/process-stream', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload) // Kirim payload yang sudah disiapkan
+          })
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`Server merespons dengan status: ${response.status}`);
             }
-            if (data.done) {
-              eventSource.close();
-              startProcessingBtn.textContent = 'Proses Selesai';
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+
+            function readStream() {
+              reader.read().then(({ done, value }) => {
+                if (done) {
+                  startProcessingBtn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Proses Selesai';
+                  startProcessingBtn.classList.remove('btn-danger');
+                  startProcessingBtn.classList.add('btn-success');
+                  return;
+                }
+
+                const chunk = decoder.decode(value, { stream: true });
+                // Server-Sent Events dipisahkan oleh '\n\n'
+                const events = chunk.split('\n\n');
+
+                events.forEach(eventString => {
+                  if (eventString.startsWith('data:')) {
+                    try {
+                      const data = JSON.parse(eventString.substring(5));
+                      if (data.log) {
+                        logOutput.textContent += data.log + '\n';
+                        logOutput.scrollTop = logOutput.scrollHeight;
+                      }
+                      if (data.done) {
+                        reader.cancel(); // Hentikan pembacaan stream
+                        startProcessingBtn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Proses Selesai';
+                        startProcessingBtn.classList.remove('btn-danger');
+                        startProcessingBtn.classList.add('btn-success');
+                      }
+                    } catch (e) {
+                      console.error('Gagal mem-parsing data stream:', e, 'Data:', eventString);
+                    }
+                  }
+                });
+                readStream(); // Lanjutkan membaca stream
+              });
             }
-          };
-          eventSource.onerror = function() {
-            logOutput.textContent += '\nKoneksi terputus. Proses mungkin gagal.';
-            eventSource.close();
-            startProcessingBtn.textContent = 'Proses Gagal';
+            readStream();
+          })
+          .catch(error => {
+            console.error('Fetch error:', error);
+            logOutput.textContent += `\nKoneksi terputus. Proses gagal. Alasan: ${error.message}`;
+            startProcessingBtn.innerHTML = '<i class="bi bi-x-circle-fill"></i> Proses Gagal';
             startProcessingBtn.classList.remove('btn-danger');
             startProcessingBtn.classList.add('btn-secondary');
-          };
+            this.disabled = false; // Aktifkan kembali tombol jika gagal
+          });
         });
       }
     });
