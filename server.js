@@ -290,7 +290,11 @@ app.post(
           "error_msg",
           "Format header Excel tidak sesuai. Harap gunakan template yang disediakan."
         );
-        return res.redirect("/import?tab=upload");
+        // JANGAN REDIRECT. Render ulang halaman dengan pesan error.
+        res.locals.activeTab = "upload";
+        res.locals.title = "Import Pengguna";
+        res.locals.usersToReview = []; // Pastikan ini kosong
+        return res.render("import-user");
       }
 
       // Baca data dari baris kedua dan seterusnya
@@ -337,7 +341,11 @@ app.post(
         ? error.message
         : "Gagal memproses file Excel. Pastikan formatnya benar.";
       req.flash("error_msg", errorMessage);
-      res.redirect("/import?tab=upload");
+      // JANGAN REDIRECT. Render ulang halaman dengan pesan error.
+      res.locals.activeTab = "upload";
+      res.locals.title = "Import Pengguna";
+      res.locals.usersToReview = []; // Pastikan ini kosong
+      res.render("import-user");
     }
   }
 );
