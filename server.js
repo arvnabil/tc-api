@@ -1,5 +1,19 @@
 require("dotenv").config();
 const express = require("express");
+
+// Pemeriksaan Environment Variable saat startup
+const requiredEnvVars = [
+  "SESSION_SECRET",
+  "APP_PASSWORD",
+  "SERVER_ADDRESS",
+  "API_KEY",
+];
+for (const varName of requiredEnvVars) {
+  if (!process.env[varName]) {
+    throw new Error(`FATAL ERROR: Environment variable ${varName} is not set.`);
+  }
+}
+
 const bodyParser = require("body-parser");
 const api = require("./trueconf-api");
 const flash = require("connect-flash");
