@@ -10,6 +10,12 @@
   # Direktori untuk file statis (CSS, gambar)
   publish = "public"
 
+# Konfigurasi untuk semua serverless functions
+[functions]
+  # Sertakan direktori 'views' beserta semua isinya ke dalam paket fungsi.
+  # Ini diperlukan agar Express bisa menemukan file template (.ejs).
+  included_files = ["views/**"]
+
 # Aturan routing
 # Mengarahkan semua permintaan ke serverless function 'api'
 [[redirects]]
