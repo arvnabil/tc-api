@@ -1,0 +1,16 @@
+# Konfigurasi untuk Netlify
+
+[build]
+  # Perintah untuk membangun situs (hanya install dependensi)
+  command = "npm install"
+  # Direktori tempat Netlify Functions berada
+  functions = "netlify/functions"
+  # Direktori untuk file statis (CSS, gambar)
+  publish = "public"
+
+# Aturan routing
+# Mengarahkan semua permintaan ke serverless function 'api'
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/api"
+  status = 200

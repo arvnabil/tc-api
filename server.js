@@ -393,10 +393,6 @@ app.use(function (err, req, res, next) {
   res.render("error");
 });
 
-// Untuk hosting biasa (seperti cPanel) dan development lokal,
-// kita perlu menjalankan server secara persisten.
-// Hosting akan menyediakan port melalui process.env.PORT.
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server berjalan di port ${PORT}`);
-});
+// Ekspor aplikasi Express agar bisa digunakan oleh lingkungan serverless
+// seperti Netlify atau Vercel.
+module.exports = app;
