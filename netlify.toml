@@ -1,8 +1,10 @@
 # Konfigurasi untuk Netlify
 
 [build]
-  # Perintah untuk membangun situs (hanya install dependensi)
-  command = "npm install"
+  # Gunakan 'npm ci' untuk instalasi yang lebih cepat dan andal di lingkungan CI/CD.
+  # Ini akan menginstal dependensi persis seperti yang ada di package-lock.json
+  # dan akan gagal jika package.json dan package-lock.json tidak sinkron.
+  command = "npm ci"
   # Direktori tempat Netlify Functions berada
   functions = "netlify/functions"
   # Direktori untuk file statis (CSS, gambar)
