@@ -217,30 +217,27 @@ app.get("/import", requireAuth, (req, res) => {
   res.render("import-user");
 });
 
-app.get("/download-template", requireAuth, async (req, res) => {
-  const workbook = new exceljs.Workbook();
-  const worksheet = workbook.addWorksheet("Template");
-
-  // Definisikan header kolom sesuai format yang dibutuhkan
-  worksheet.columns = [
-    { header: "id", key: "id", width: 25 },
-    { header: "password", key: "password", width: 20 },
-    { header: "display_name", key: "display_name", width: 30 },
-    { header: "first_name", key: "first_name", width: 25 },
-    { header: "last_name", key: "last_name", width: 25 },
-    { header: "company", key: "company", width: 30 },
-  ];
-
-  res.setHeader(
-    "Content-Type",
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+app.get("/download-template", requireAuth, (req, res) => {
+  // Tentukan path ke file template Anda di dalam folder 'public'
+  // Pastikan nama file dan path-nya sudah benar.
+  const filePath = path.join(
+    __dirname,
+    "public",
+    "template",
+    "template-tambah-user.xlsx"
   );
-  res.setHeader(
-    "Content-Disposition",
-    "attachment; filename=" + "template-tambah-user.xlsx"
-  );
+  const fileName = "template-tambah-user.xlsx"; // Nama file yang akan diunduh pengguna
 
-  await workbook.xlsx.write(res);
+  // Gunakan res.download() untuk mengirim file.
+  // Express akan secara otomatis mengatur header Content-Type dan Content-Disposition.
+  res.download(filePath, fileName, (err) => {
+    if (err) {
+      console.error("Error saat mengunduh file template:", err);
+      if (!res.headersSent) {
+        res.status(404).send("Maaf, file template tidak dapat ditemukan.");
+      }
+    }
+  });
 });
 
 app.post(
