@@ -241,7 +241,6 @@ app.get("/download-template", requireAuth, async (req, res) => {
   );
 
   await workbook.xlsx.write(res);
-  res.end();
 });
 
 app.post(
