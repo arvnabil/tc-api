@@ -376,6 +376,23 @@ app.get("/import/process-stream", requireAuth, async (req, res) => {
   res.end();
 });
 
+// Middleware untuk menangani error 404 (Not Found)
+// Ini akan menangkap semua permintaan yang tidak cocok dengan route di atas.
+app.use(function (req, res, next) {
+  const err = new Error("Halaman Tidak Ditemukan");
+  err.status = 404;
+  next(err);
+});
+
+// Middleware penanganan error akhir (catch-all)
+// Ini akan menangkap semua error yang dilempar dari route lain.
+app.use(function (err, req, res, next) {
+  // Menampilkan pesan error
+  res.locals.message = err.message;
+  res.status(err.status || 500);
+  res.render("error");
+});
+
 // Untuk hosting biasa (seperti cPanel) dan development lokal,
 // kita perlu menjalankan server secara persisten.
 // Hosting akan menyediakan port melalui process.env.PORT.
