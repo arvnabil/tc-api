@@ -257,6 +257,9 @@ app.post(
       const workbook = new exceljs.Workbook();
       await workbook.xlsx.load(req.file.buffer);
       const worksheet = workbook.worksheets[0];
+      console.log(
+        `[Import Review] Memulai proses file. Jumlah baris terdeteksi: ${worksheet.rowCount}`
+      );
       const usersToReview = [];
       const expectedHeaders = [
         "id",
@@ -274,6 +277,14 @@ app.post(
         if (colNumber <= expectedHeaders.length) actualHeaders.push(cell.value);
       });
 
+      console.log(
+        "[Import Review] Header yang diharapkan:",
+        JSON.stringify(expectedHeaders)
+      );
+      console.log(
+        "[Import Review] Header aktual dari file:",
+        JSON.stringify(actualHeaders)
+      );
       if (JSON.stringify(actualHeaders) !== JSON.stringify(expectedHeaders)) {
         req.flash(
           "error_msg",
@@ -287,6 +298,11 @@ app.post(
         const row = worksheet.getRow(rowNumber);
         const id = String(row.getCell("A").value || "").trim();
         const password = String(row.getCell("B").value || "");
+        console.log(
+          `[Import Review] Memproses baris ${rowNumber}: id='${id}', password='${
+            password ? "***" : "(kosong)"
+          }'`
+        );
 
         // Lewati baris yang benar-benar kosong
         if (!id && !password && !String(row.getCell("C").value || "")) continue;
@@ -307,6 +323,9 @@ app.post(
         });
       }
 
+      console.log(
+        `[Import Review] Proses selesai. Jumlah user untuk ditinjau: ${usersToReview.length}`
+      );
       // JANGAN simpan di sesi dan redirect. Langsung render halaman review.
       res.locals.usersToReview = usersToReview;
       res.locals.activeTab = "review";
