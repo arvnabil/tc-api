@@ -24,7 +24,7 @@ const flash = require("connect-flash");
 const multer = require("multer");
 const exceljs = require("exceljs");
 const path = require("path");
-const session = require("express-session");
+const cookieSession = require("cookie-session");
 
 const app = express();
 const port = 3000;
@@ -34,11 +34,10 @@ app.set("view engine", "ejs");
 app.use(express.static(path.join(__dirname, "public")));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(
-  session({
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: { maxAge: 1000 * 60 * 60 * 24 }, // Sesi berlaku 24 jam
+  cookieSession({
+    name: "session", // nama cookie
+    keys: [process.env.SESSION_SECRET], // 'keys' digunakan untuk menandatangani cookie
+    maxAge: 24 * 60 * 60 * 1000, // 24 jam
   })
 );
 app.use(flash());
@@ -136,12 +135,9 @@ app.post("/login", (req, res) => {
 });
 
 app.get("/logout", (req, res) => {
-  req.session.destroy((err) => {
-    if (err) {
-      return res.redirect("/");
-    }
-    res.redirect("/login");
-  });
+  // Dengan cookie-session, kita menghapus sesi dengan mengaturnya menjadi null
+  req.session = null;
+  res.redirect("/login");
 });
 
 app.get("/tambah", requireAuth, (req, res) => {
