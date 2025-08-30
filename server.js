@@ -1,6 +1,10 @@
 require("dotenv").config();
 const express = require("express");
 
+// Memaksa Netlify untuk menyertakan 'ejs' dalam bundle serverless function.
+// Bundler Netlify terkadang tidak mendeteksi dependensi yang dimuat secara dinamis oleh Express.
+require("ejs");
+
 // Pemeriksaan Environment Variable saat startup
 const requiredEnvVars = [
   "SESSION_SECRET",
