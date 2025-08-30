@@ -85,8 +85,11 @@
           aria-label="Close"
         ></button>
       </div>
-      <% } %> <% if (error) { %>
-      <div class="alert alert-danger"><%= error %></div>
+      <% } %> <% if (error && error.length > 0) { %>
+      <div class="alert alert-danger">
+        <% if (Array.isArray(error)) { %> <%= error[0] %> <% } else { %> <%=
+        error %> <% } %>
+      </div>
       <% } %>
 
       <div
