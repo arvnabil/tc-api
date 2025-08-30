@@ -396,3 +396,12 @@ app.use(function (err, req, res, next) {
 // Ekspor aplikasi Express agar bisa digunakan oleh lingkungan serverless
 // seperti Netlify atau Vercel.
 module.exports = app;
+
+// Blok ini hanya akan berjalan jika aplikasi tidak di-deploy di lingkungan produksi
+// seperti Netlify. Ini memungkinkan Anda menjalankan server secara lokal untuk development.
+if (process.env.NODE_ENV !== "production") {
+  const port = process.env.PORT || 3000;
+  app.listen(port, () => {
+    console.log(`Server lokal berjalan di http://localhost:${port}`);
+  });
+}
