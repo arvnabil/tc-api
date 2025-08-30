@@ -21,8 +21,8 @@
         padding: 0;
       }
       .card {
-        min-width: 500px;
-        min-height: 300px;
+        width: 100%;
+        max-width: 450px; /* Batas lebar maksimum kartu agar tidak terlalu lebar di desktop */
         /* Warna latar belakang #1C6068 dengan 90% opacity */
         background-color: rgba(28, 96, 104, 0.9);
         border: 1px solid hsla(0, 0%, 100%, 0.12);
@@ -43,7 +43,7 @@
   <body>
     <div class="container">
       <div class="row justify-content-center align-items-center vh-100">
-        <div class="col-md-4">
+        <div class="col-11 col-md-6 col-lg-5 col-xl-4">
           <div class="card shadow">
             <div class="card-body p-4">
               <h3 class="card-title text-center mb-4">Login Access</h3>
