@@ -407,9 +407,35 @@ app.post("/import/process-stream", requireAuth, async (req, res) => {
     // 2. Panggil API untuk operasi massal
     const result = await api.addUsersBulk(usersPayload);
 
-    sendEvent({ log: `✅ BERHASIL: Operasi massal selesai.` });
-    // Tampilkan respons dari server untuk referensi
-    sendEvent({ log: `Respons Server: ${JSON.stringify(result, null, 2)}` });
+    sendEvent({ log: `✅ BERHASIL: Permintaan massal berhasil dikirim.` });
+    sendEvent({ log: `Menganalisis respons dari server...` });
+
+    let successCount = 0;
+    let failureCount = 0;
+
+    // 3. Analisis dan kirim log untuk pengguna yang berhasil
+    // Asumsi: API mengembalikan { users: [...] } untuk yang berhasil
+    if (result && Array.isArray(result.users)) {
+      result.users.forEach((user) => {
+        sendEvent({ log: `   -> ✅ User "${user.id}" berhasil dibuat.` });
+        successCount++;
+      });
+    }
+
+    // 4. Analisis dan kirim log untuk pengguna yang gagal
+    // Asumsi: API mengembalikan { errors: [...] } untuk yang gagal
+    if (result && Array.isArray(result.errors)) {
+      result.errors.forEach((error) => {
+        const reason = error.message || "Alasan tidak diketahui";
+        sendEvent({ log: `   -> ❌ User "${error.id}" GAGAL: ${reason}` });
+        failureCount++;
+      });
+    }
+
+    sendEvent({ log: `-------------------------------------------` });
+    sendEvent({
+      log: `Ringkasan: ${successCount} berhasil, ${failureCount} gagal.`,
+    });
   } catch (error) {
     sendEvent({
       log: `❌ GAGAL: Operasi massal gagal. Alasan: ${error.message}`,
