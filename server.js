@@ -354,99 +354,42 @@ app.post(
   }
 );
 
-app.post("/import/process-stream", requireAuth, async (req, res) => {
-  res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache");
-  res.setHeader("Connection", "keep-alive");
-  res.flushHeaders();
+// Rute API baru untuk menambahkan SATU pengguna.
+// Ini akan dipanggil berulang kali oleh client-side script.
+app.post("/api/add-single-user", requireAuth, async (req, res) => {
+  const user = req.body;
 
-  // Ambil data dari body request, bukan dari sesi
-  // Ditambahkan pengecekan untuk memastikan req.body ada sebelum mengakses .users
-  const usersToProcess = req.body && req.body.users;
+  if (!user || !user.id || !user.password) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Data pengguna tidak lengkap." });
+  }
 
-  const sendEvent = (data) => {
-    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  const userData = {
+    id: user.id,
+    login_name: user.id,
+    password: user.password,
+    display_name: user.display_name || "",
+    first_name: user.first_name || "",
+    last_name: user.last_name || "",
+    company: user.company || "",
+    email: `${user.id}@mobilevicon.polri.go.id`,
+    uid: `${user.id}@mobilevicon.polri.go.id`,
+    is_active: 1,
+    status: 0,
+    avatar: null,
+    groups: null,
+    mobile_phone: "",
+    work_phone: "",
+    home_phone: "",
   };
 
-  if (!usersToProcess || usersToProcess.length === 0) {
-    sendEvent({ log: "Tidak ada data pengguna untuk diproses.", done: true });
-    return res.end();
-  }
-
-  sendEvent({
-    log: `Memulai proses penambahan ${usersToProcess.length} user...`,
-  });
-
-  // Ubah dari perulangan menjadi satu operasi massal
   try {
-    // 1. Siapkan payload untuk semua pengguna
-    const usersPayload = usersToProcess.map((user) => ({
-      id: user.id,
-      login_name: user.id,
-      password: user.password,
-      display_name: user.display_name || "",
-      first_name: user.first_name || "",
-      last_name: user.last_name || "",
-      company: user.company || "",
-      email: `${user.id}@mobilevicon.polri.go.id`,
-      uid: `${user.id}@mobilevicon.polri.go.id`,
-      is_active: 1,
-      status: 0,
-      avatar: null,
-      groups: null,
-      mobile_phone: "",
-      work_phone: "",
-      home_phone: "",
-    }));
-
-    sendEvent({ log: `-------------------------------------------` });
-    sendEvent({
-      log: `Mengirim ${usersPayload.length} pengguna ke API dalam satu permintaan...`,
-    });
-
-    // 2. Panggil API untuk operasi massal
-    const result = await api.addUsersBulk(usersPayload);
-
-    sendEvent({ log: `✅ BERHASIL: Permintaan massal berhasil dikirim.` });
-    sendEvent({ log: `Menganalisis respons dari server...` });
-
-    let successCount = 0;
-    let failureCount = 0;
-
-    // 3. Analisis dan kirim log untuk pengguna yang berhasil
-    // Asumsi: API mengembalikan { users: [...] } untuk yang berhasil
-    if (result && Array.isArray(result.users)) {
-      result.users.forEach((user) => {
-        sendEvent({ log: `   -> ✅ User "${user.id}" berhasil dibuat.` });
-        successCount++;
-      });
-    }
-
-    // 4. Analisis dan kirim log untuk pengguna yang gagal
-    // Asumsi: API mengembalikan { errors: [...] } untuk yang gagal
-    if (result && Array.isArray(result.errors)) {
-      result.errors.forEach((error) => {
-        const reason = error.message || "Alasan tidak diketahui";
-        sendEvent({ log: `   -> ❌ User "${error.id}" GAGAL: ${reason}` });
-        failureCount++;
-      });
-    }
-
-    sendEvent({ log: `-------------------------------------------` });
-    sendEvent({
-      log: `Ringkasan: ${successCount} berhasil, ${failureCount} gagal.`,
-    });
+    const result = await api.addUser(userData);
+    res.json({ success: true, user: result.user });
   } catch (error) {
-    sendEvent({
-      log: `❌ GAGAL: Operasi massal gagal. Alasan: ${error.message}`,
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
-
-  sendEvent({ log: `-------------------------------------------` });
-  sendEvent({ log: "🎉 Proses Selesai!" });
-  sendEvent({ done: true });
-
-  res.end();
 });
 
 // Middleware untuk menangani error 404 (Not Found)

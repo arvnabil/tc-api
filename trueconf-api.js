@@ -93,8 +93,8 @@ async function addUser(userData) {
  */
 async function addUsersBulk(usersData) {
   try {
-    // Payload harus dalam format { "users": [...] } sesuai permintaan
-    const payload = { users: usersData };
+    // Payload kemungkinan besar adalah array pengguna secara langsung, bukan objek.
+    const payload = usersData;
     const response = await axios.post(API_URL_USERS, payload, {
       headers: {
         Authorization: API_KEY,

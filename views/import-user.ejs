@@ -200,73 +200,52 @@
       }
 
       if (startProcessingBtn) {
-        startProcessingBtn.addEventListener('click', function() {
+        startProcessingBtn.addEventListener('click', async function() {
           this.disabled = true;
           this.innerHTML = '<i class="bi bi-hourglass-split"></i> Memproses...';
           processingTabBtn.disabled = false;
           showTab('processing-tab');
-          logOutput.textContent = 'Menghubungkan ke server...\n';
+          logOutput.textContent = `Memulai proses untuk ${payload.users.length} pengguna...\n\n`;
 
-          // Gunakan fetch untuk mengirim POST request dengan data di body
-          fetch('/import/process-stream', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(payload) // Kirim payload yang sudah disiapkan
-          })
-          .then(response => {
-            if (!response.ok) {
-              throw new Error(`Server merespons dengan status: ${response.status}`);
-            }
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
+          let successCount = 0;
+          let failureCount = 0;
 
-            function readStream() {
-              reader.read().then(({ done, value }) => {
-                if (done) {
-                  startProcessingBtn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Proses Selesai';
-                  startProcessingBtn.classList.remove('btn-danger');
-                  startProcessingBtn.classList.add('btn-success');
-                  return;
-                }
+          for (const user of payload.users) {
+            logOutput.textContent += `-------------------------------------------\n`;
+            logOutput.textContent += `Mencoba menambahkan user: ${user.id}...\n`;
+            logOutput.scrollTop = logOutput.scrollHeight;
 
-                const chunk = decoder.decode(value, { stream: true });
-                // Server-Sent Events dipisahkan oleh '\n\n'
-                const events = chunk.split('\n\n');
-
-                events.forEach(eventString => {
-                  if (eventString.startsWith('data:')) {
-                    try {
-                      const data = JSON.parse(eventString.substring(5));
-                      if (data.log) {
-                        logOutput.textContent += data.log + '\n';
-                        logOutput.scrollTop = logOutput.scrollHeight;
-                      }
-                      if (data.done) {
-                        reader.cancel(); // Hentikan pembacaan stream
-                        startProcessingBtn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Proses Selesai';
-                        startProcessingBtn.classList.remove('btn-danger');
-                        startProcessingBtn.classList.add('btn-success');
-                      }
-                    } catch (e) {
-                      console.error('Gagal mem-parsing data stream:', e, 'Data:', eventString);
-                    }
-                  }
-                });
-                readStream(); // Lanjutkan membaca stream
+            try {
+              const response = await fetch('/api/add-single-user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(user)
               });
+
+              const result = await response.json();
+
+              if (response.ok && result.success) {
+                logOutput.textContent += `   -> ✅ BERHASIL: User "${user.id}" berhasil dibuat.\n`;
+                successCount++;
+              } else {
+                logOutput.textContent += `   -> ❌ GAGAL: User "${user.id}" gagal dibuat. Alasan: ${result.message || 'Error tidak diketahui'}\n`;
+                failureCount++;
+              }
+            } catch (error) {
+              logOutput.textContent += `   -> ❌ KESALAHAN JARINGAN saat memproses user "${user.id}". Alasan: ${error.message}\n`;
+              failureCount++;
             }
-            readStream();
-          })
-          .catch(error => {
-            console.error('Fetch error:', error);
-            logOutput.textContent += `\nKoneksi terputus. Proses gagal. Alasan: ${error.message}`;
-            startProcessingBtn.innerHTML = '<i class="bi bi-x-circle-fill"></i> Proses Gagal';
-            startProcessingBtn.classList.remove('btn-danger');
-            startProcessingBtn.classList.add('btn-secondary');
-            this.disabled = false; // Aktifkan kembali tombol jika gagal
-          });
+            logOutput.scrollTop = logOutput.scrollHeight;
+          }
+
+          logOutput.textContent += `\n-------------------------------------------\n`;
+          logOutput.textContent += `🎉 Proses Selesai!\n`;
+          logOutput.textContent += `Ringkasan: ${successCount} berhasil, ${failureCount} gagal.\n`;
+          logOutput.scrollTop = logOutput.scrollHeight;
+
+          this.innerHTML = '<i class="bi bi-check-circle-fill"></i> Proses Selesai';
+          this.classList.remove('btn-danger');
+          this.classList.add('btn-success');
         });
       }
     });
