@@ -36,7 +36,7 @@ app.use((req, res, next) => {
   res.locals.error = req.flash("error"); // Untuk kompatibilitas dengan halaman login
 
   // Untuk mengisi kembali form setelah validasi gagal
-  res.locals.old_input = req.flash("old_input")[0] || {};
+  res.locals.old_input = req.flash("old_input")[0] || {}; // Untuk mengisi kembali form
 
   // Variabel default untuk layout (mencegah error 'not defined' di template)
   res.locals.title = "TrueConf User Manager"; // Judul default
@@ -45,6 +45,8 @@ app.use((req, res, next) => {
   res.locals.searchQuery = req.query.search || "";
   res.locals.currentPage = parseInt(req.query.page) || 1;
   res.locals.totalPages = 0;
+  res.locals.search_success_msg = null;
+
   next();
 });
 
@@ -190,13 +192,11 @@ app.get("/api/users/search", requireAuth, async (req, res) => {
 
 app.get("/import", requireAuth, (req, res) => {
   const usersToReview = req.session.importData || [];
-  // Render halaman import dengan data (jika ada) dan tab aktif dari query URL
-  res.render("import-user", {
-    ...res.locals,
-    usersToReview,
-    activeTab: req.query.tab || "download",
-    title: "Import Pengguna",
-  });
+  res.locals.usersToReview = usersToReview;
+  res.locals.activeTab = req.query.tab || "download";
+  res.locals.title = "Import Pengguna";
+
+  res.render("import-user");
 });
 
 app.get("/download-template", requireAuth, async (req, res) => {
@@ -376,5 +376,10 @@ app.get("/import/process-stream", requireAuth, async (req, res) => {
   res.end();
 });
 
-// Export the app for Vercel's serverless environment
-module.exports = app;
+// Untuk hosting biasa (seperti cPanel) dan development lokal,
+// kita perlu menjalankan server secara persisten.
+// Hosting akan menyediakan port melalui process.env.PORT.
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server berjalan di port ${PORT}`);
+});
