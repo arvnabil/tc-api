@@ -33,6 +33,10 @@ const port = 3000;
 app.set("view engine", "ejs");
 app.use(express.static(path.join(__dirname, "public")));
 app.use(bodyParser.urlencoded({ extended: true }));
+// Tambahkan middleware ini untuk mem-parsing body request berformat JSON.
+// Ini sangat penting untuk rute API seperti /import/process-stream.
+app.use(express.json());
+
 app.use(
   cookieSession({
     name: "session", // nama cookie
@@ -357,7 +361,8 @@ app.post("/import/process-stream", requireAuth, async (req, res) => {
   res.flushHeaders();
 
   // Ambil data dari body request, bukan dari sesi
-  const usersToProcess = req.body.users;
+  // Ditambahkan pengecekan untuk memastikan req.body ada sebelum mengakses .users
+  const usersToProcess = req.body && req.body.users;
 
   const sendEvent = (data) => {
     res.write(`data: ${JSON.stringify(data)}\n\n`);
